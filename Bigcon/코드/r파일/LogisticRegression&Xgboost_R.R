@@ -1,0 +1,269 @@
+#필요한 패키지 가져오기
+install.packages("data.table")
+install.packages("Matrix")
+install.packages("dplyr")
+install.packages("MLmetrics")
+install.packages("ROCR")
+install.packages("caret")
+install.packages("e1071")
+install.packages("glmnet")
+
+library(data.table)
+library(Matrix)
+library(dplyr)
+library(MLmetrics)
+library(ROCR)
+library(caret)
+library(e1071)
+library(glmnet)
+
+#data1.csv 가져오기
+data<-read.csv(file.choose(),header=T)
+#범주형 변수를 숫자 범주로 변환하기
+for(i in 1:8){
+  data[,i]<-factor(data[,i])
+}
+#숫자형 데이터 정규화하기
+normalize <- function (x) {
+  normalized = (x - min(x)) / (max(x) - min(x))
+  return(normalized)
+}
+for(i in 9:25){
+  data[,i]<-normalize(data[,i])
+}
+
+#data1을 7:3으로 train 데이터, test 데이터로 나누기
+train<-sample(1:nrow(data), nrow(data)*0.7)
+test<- -train
+traindata1<-data[train,]
+x.test1<-data[test,-8]
+y.test1<-data[test,8]
+y<-as.numeric(data[,8])
+x<-model.matrix(V8~.,data)[,-1]
+
+###data1의 LASSO###
+cv.lasso <- cv.glmnet(x, y, alpha=1,k=10)
+lasso.coef = predict(cv.lasso, type = "coefficients", s=cv.lasso$lambda.1se)
+plot(cv.lasso$glmnet.fit, xvar="lambda", label=TRUE) #LASSO lambda plot
+small.lambda.index <- which(cv.lasso$lambda == cv.lasso$lambda.1se)
+small.lambda.betas <- cv.lasso$glmnet.fit$beta[, small.lambda.index]
+small.lambda.betas<-small.lambda.betas[small.lambda.betas!=0]
+X<-small.lambda.betas
+X<-abs(X[order(abs(X))])
+print(X) #LASSO를 활용해서 람다가 작은 것을 제외하는 방식으로 변수를 선택하였다.
+#A10,A1,A6,T1,A12,A3,A9,A4,W3,A11 제외
+l_data<-data[,c(-23,-14,-19,-9,-25,-16,-17,-13,-24,-22)]
+l_GLM<-glm(V8~.,data=l_data,family="binomial")
+summary(l_GLM) #result of LASSO(data1)
+
+###data1의 RIDGE###
+cv.ridge <- cv.glmnet(x, y, alpha=0, k=10)
+ridge.coef = predict(cv.ridge, type = "coefficients", s=cv.ridge$lambda.1se)
+plot(cv.ridge$glmnet.fit, xvar="lambda", label=TRUE) #RIDGE lambda plot
+small.lambda.index2 <- which(cv.ridge$lambda == cv.ridge$lambda.1se)
+small.lambda.betas2 <- cv.ridge$glmnet.fit$beta[, small.lambda.index2]
+small.lambda.betas2<-small.lambda.betas2[small.lambda.betas2!=0]
+Y<-small.lambda.betas2
+Y<-abs(Y[order(abs(Y))])
+print(Y) #RIDGE를 활용해서 람다가 작은 것을 제외하는 방식으로 변수를 선택하였다.
+#T2,T1,A10,A12,A7,A5,A1,W1,A2,A3,W2,A4,A6,W3 제외
+r_data<-data[,c(-10,-9,-23,-25,-20,-18,-14,-11,-12,-14,-15,-16,-17,-13,-19)]
+r_GLM<-glm(V8~.,data=r_data,family="binomial")
+summary(r_GLM) #result of RIDGE(data1)
+
+###data1의 logistic regression(full model)###
+GLM<-glm(V8~.,data=data,family="binomial")
+summary(GLM) #result of logistic regression(data1)
+
+###data1의 stepwise logistic regression###
+#backward stepwise
+step(GLM)
+#A7,W1 제외
+s_data<-data[,c(-20,-11)]
+s_GLM<-glm(V8~.,data=s_data,family="binomial")
+summary(s_GLM) #result of stepwise logistic regression(data1)
+step(s_GLM)
+#A7,W1 제외
+
+#ANOVA로 best model 선정하기
+anova(l_GLM,GLM)
+anova(r_GLM,GLM)
+anova(s_GLM,GLM) #deviation이 가장 작아서 best model로 선정하였다.
+
+#s_data을 7:3으로 train 데이터, test 데이터로 나누기(s_data는 backward stepwise로 data1에서 변수 선택된 데이터)
+s_traindata<-s_data[train,]
+s_ytest<-s_data[test,8]
+s_testdata<-s_data[test,-8]
+#fit model
+glm_fit<-glm(V8~.,family=binomial(link=logit),data=s_traindata)
+#predicting
+pglm<-predict(glm_fit,s_testdata,type='response')
+#cutoff
+cutoff<-sum(as.numeric(s_traindata$V8))/nrow(s_traindata)
+cutoff<-cutoff-1
+cutoff2<-quantile(pglm,1-cutoff)
+glm.pred<-rep(0,length(pglm))
+glm.pred[pglm>cutoff2]=1
+
+prglm <- prediction(pglm, s_ytest)
+aucG <- performance(prglm, measure = "auc")
+print(aucG@y.values[[1]]) #data1 stepwise logistic regression AUC
+prrglm <- performance(prglm, measure = "tpr", x.measure = "fpr")
+plot(prrglm) #data1 stepwise logistic regression ROC Curve
+
+#data2 가져오기
+data2<-read.csv(file.choose(),header=T)
+#범주형 변수를 숫자 범주로 변환하기
+for(i in 1:8){
+  data2[,i]<-factor(data2[,i])
+}
+#숫자형 데이터 정규화하기
+for(i in 9:13){
+  data2[,i]<-normalize(data2[,i])
+}
+
+#data2을 7:3으로 train 데이터, test 데이터로 나누기
+train2<-sample(1:nrow(data2), nrow(data2)*0.7)
+test2<- -train2
+traindata2<-data2[train2,]
+testdata2<-data2[test2,]
+test22<-subset(testdata2,V5==5)
+test23<-subset(testdata2,V5==6)
+testdata22<-rbind(test22,test23)
+x.test2<-testdata22[,-8]
+y.test2<-testdata22[,8]
+y<-data2[,8]
+y<-as.double(y)
+x<-model.matrix(V8~.,data2)[,-1]
+
+###data2의 LASSO###
+cv.lasso <- cv.glmnet(x, y, alpha=1,k=10)
+lasso.coef = predict(cv.lasso, type = "coefficients", s=cv.lasso$lambda.1se)
+lasso.coef
+plot(cv.lasso$glmnet.fit, xvar="lambda", label=TRUE)
+small.lambda.index <- which(cv.lasso$lambda == cv.lasso$lambda.1se)
+small.lambda.betas <- cv.lasso$glmnet.fit$beta[, small.lambda.index]
+small.lambda.betas <- small.lambda.betas[small.lambda.betas!=0]
+X<-small.lambda.betas
+X<-abs(X[order(abs(X))])
+print(X) #LASSO를 활용해서 람다가 작은 것을 제외하는 방식으로 변수를 선택하였다.
+#T1,T2,W1,W2,W3 제외
+l_data<-data2[,-(9:13)]
+l_GLM<-glm(V8~.,data=l_data,family="binomial")
+summary(l_GLM) #result of LASSO(data2)
+
+###data2의 RIDGE###
+cv.ridge <- cv.glmnet(x, y, alpha=0, k=10)
+plot(cv.ridge$glmnet.fit, xvar="lambda", label=TRUE)
+small.lambda.index2 <- which(cv.ridge$lambda == cv.ridge$lambda.1se)
+small.lambda.betas2 <- cv.ridge$glmnet.fit$beta[, small.lambda.index2]
+small.lambda.betas2<-small.lambda.betas2[small.lambda.betas2!=0]
+Y<-small.lambda.betas2
+Y<-abs(Y[order(abs(Y))])
+print(Y) #RIDGE를 활용해서 람다가 작은 것을 제외하는 방식으로 변수를 선택하였다.
+#T1,T2,W1,W3 제외
+r_data<-data2[,c(-9,-10,-11,-13)]
+r_GLM<-glm(V8~.,data=r_data,family="binomial")
+summary(r_GLM) #result of RIDGE(data2)
+
+###data2의 logistic regression(full model)###
+GLM<-glm(V8~.,data=data2,family="binomial")
+summary(GLM) #result of logistic regression(data2)
+#backward stepwise
+#T2 제외
+step(GLM)
+s_data<-data2[,-10]
+s_GLM<-glm(V8~.,data=s_data,family="binomial")
+summary(s_GLM) #result of stepwise logistic regression(data2)
+step(s_GLM) 
+#T2 제외
+
+#ANOVA로 best model 선정하기
+anova(l_GLM,GLM)
+anova(r_GLM,GLM)
+anova(s_GLM,GLM) #deviation이 가장 작아서 best model로 선정하였다.
+
+#s_data을 7:3으로 train 데이터, test 데이터로 나누기(s_data2는 backward stepwise로 data2에서 변수 선택된 데이터)
+s_traindata2<-s_data[train2,]
+s_ytest2<-y.test2
+s_testdata2<-x.test2
+#fit model
+glm_fit2<-glm(V8~.,family=binomial(link=logit),data=s_traindata2)
+#predicting
+pglm2<-predict(glm_fit2,s_testdata2,type='response')
+#cutoff
+cutoff<-sum(as.numeric(s_traindata2$V8))/nrow(s_traindata2)
+cutoff<-cutoff-1
+cutoff2<-quantile(pglm2,1-cutoff)
+glm.pred2<-rep(0,length(pglm2))
+glm.pred2[pglm2>cutoff2]=1
+
+prglm2 <- prediction(pglm2,s_ytest2)
+aucG2 <- performance(prglm2, measure = "auc")
+print(aucG2@y.values[[1]]) #data2 stepwise logistic regression AUC
+prrglm2 <- performance(prglm2, measure = "tpr", x.measure = "fpr")
+plot(prrglm2) #data2 stepwise logistic regression ROC Curve
+
+#data1 variable importance(logistic regresssion)
+importance <- varImp(glm_fit, scale=FALSE)
+plot(importance, top=20)
+#data2 variable importance(logistic regresssion)
+importance2 <- varImp(glm_fit2, scale=FALSE)
+plot(importance2, top=20) 
+
+###data1&data2 stepwise logistic regression
+GLM1<-cbind(s_ytest,pglm)
+GLM2<-cbind(s_ytest2,pglm2)
+
+GLM<-rbind(GLM1,GLM2)
+prglm <- prediction(as.numeric(GLM[,2]), as.numeric(GLM[,1]))
+aucG <- performance(prglm, measure = "auc")
+print(aucG@y.values[[1]]) #data1&data2 stepwise logistic regression AUC
+prrglm <- performance(prglm, measure = "tpr", x.measure = "fpr")
+plot(prrglm) #data1&data2 stepwise logistic regression ROC Curve
+
+###xgboost###
+
+#data1 xgboost parameter 조절
+parametersGrid <-  expand.grid(eta = c(0.2), colsample_bytree=0.7,max_depth=c(13),nrounds=150,gamma=c(5),min_child_weight=1,subsample=1)
+xg_fit1<- caret::train(V8~V1+V2+V3+V4+V5+V6+V7+T1+T2+W1+W2+W3+A1+A2+A3+A4+A5+A6+A7+A8+A9+A10+A11+A12,data=traindata1,method='xgbTree',trControl=trainControl(number=10,method="cv"),tuneGrid=parametersGrid)
+
+predict.xg1<-predict(xg_fit1,newdata=x.test1,type='prob')
+xg_pr1<-prediction(predict.xg1[,2],y.test1)
+AUC_xg1<-performance(xg_pr1,'auc')@y.values[[1]]
+AUC_xg1 #data1 xgboost AUC
+
+xg_pf1 <- performance(xg_pr1, measure = "tpr", x.measure = "fpr")
+plot(xg_pf1, main='ROC of xgboost Test Data') #data1 xgboost ROC Curve
+
+#data1 variable importance(xgboost)
+predict.X1<- predict(xg_fit1,newdata=x.test1,type='raw')
+importance1 <- varImp(xg_fit1, scale=FALSE)
+plot(importance1,top=20)
+
+#data2 xgboost parameter 조절
+parametersGrid2 <- expand.grid(eta = 0.3, colsample_bytree=0.7,max_depth=13,nrounds=150,gamma=2,min_child_weight=1,subsample=1)
+xg_fit2 <- caret::train(V8~V1+V2+V3+V4+V5+V6+V7+T1+T2+W1+W2+W3,data=traindata2,method='xgbTree',trControl=trainControl(number=10,method="cv"),tuneGrid=parametersGrid2)
+
+predict.xg2 <- predict(xg_fit2,newdata=x.test2,type='prob')
+xg_pr2 <- prediction(predict.xg2[,2],y.test2)
+AUC_xg2 <- performance(xg_pr2,'auc')@y.values[[1]]
+AUC_xg2 #data2 xgboost AUC
+
+xg_pf2 <- performance(xg_pr2, measure = "tpr", x.measure = "fpr")
+plot(xg_pf2, main='ROC of xgboost Test Data') #data2 xgboost ROC Curve
+
+#data2 variable importance(xgboost)
+predict.X2 <- predict(xg_fit2,newdata=x.test2,type='raw')
+importance2 <- varImp(xg_fit2, scale=FALSE)
+plot(importance2,top=20)
+
+###data1&data2 xgboost
+predict.xg <- rbind(predict.xg1,predict.xg2)
+pred.xg <- c(predict.X1,predict.X2)-1
+Y.xg <- c(y.test1,y.test2)-1
+xg_pr <- prediction(predict.xg[,2],Y.xg)
+AUC_xg <- performance(xg_pr,'auc')@y.values[[1]]
+AUC_xg #data1&data2 xgboost AUC
+xg_pf <- performance(xg_pr, measure = "tpr", x.measure = "fpr")
+plot(xg_pf, main='ROC of xgboost Test Data') #data1&data2 xgboost ROC Curve

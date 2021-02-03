@@ -1,0 +1,79 @@
+#ASFNT_DLY에 엑셀 함수를 이용하여 T1,T2를 추가한다.
+#1. ASFNT_DLY.csv를 연다
+#2. DLY와 DLY_RATE 를 13번째, 14번째 열로 옮긴다.
+#3. 11번째, 12번째 열을 셀 서식 일반으로 지정한다.
+#4. 11번째 열에 '=hour(STT_cell)*60+MINUTE(STT_cell)을 이용해 T1변수를 만든다.(STT_cell은 STT변수가 있는 첫번째 칸을 지정한다.)
+#5. 12번째 열에 '=DATE(A2,B2,C2)*1440+T1 - DATE(2017,1,1)*1440-369'을 이용해 T2변수를 만든다.
+#6. ASFNT_DLY.csv로 저장한다.
+
+#ASFNT_DLY.csv 불러오기
+K<-read.csv(file.choose(),header=T)
+K[,1]<-K[,1]-2016
+
+#변인 제외하기
+K<-K[,c(-7,-8,-10,-13,-14)]
+
+#범주형 변수를 숫자 범주로 변환하기
+K2<-matrix(0,nrow=nrow(K),ncol=ncol(K))
+for(j in 4:7){
+AC=levels(K[,j])
+print(AC)
+for(i in 1:length(AC)){
+AD=which(K[,j]==AC[i])
+K2[AD,j]=i
+}
+}
+
+K2[,1]<-K[,1]
+K2[,2]<-K[,2]
+K2[,3]<-K[,3]
+K2[,8]<-K[,8]
+K2[,9]<-K[,9]
+
+K2<-as.data.frame(K2)
+write.csv(K2,"") #B.csv로 저장
+
+#엑셀로 B.csv에서 2018년 9월 16일~2018년 9월 30일 기상데이터 추가한다.
+#2019년 9월 16일~2019년 9월 30일 기상데이터를 2018년 9월 16일~2018년 9월 30일 기상데이터로 사용하였다.
+#기상데이터 결측치는 엑셀에서 필터를 활용하여 보간하였다.
+#(기상데이터 추출 및 결측치 대체에 대한 방법은 결과보고서를 참조)
+#데이터 추출, 결측치 보간이 된 기상데이터를 사용하였다.
+#1. B.csv를 연다.
+#2. R로 write.csv()를 사용하여 자동 생성된 첫 번째 열을 삭제한다.
+#3. B.csv에서 새로운 시트를 열어 하나의 공항(ex. ARP1)의 기상데이터를 붙여넣는다.
+#4. 새로운 시트에 있는 기상데이터에서 2018년 평균기온 전체를 선택하여 INDEX를 평균기온으로 지정한다.
+#5. 항공데이터에서 하나의 공항(ex. ARP1)에 필터를 넣는다.
+#6. 10번 째, 11번 째, 12번 째 열을 셀 서식 일반으로 지정한다.
+#7. 10번째 열에 '=IF(A__=3,INDEX(평균기온,B__+1,C__+1))'을 이용하여 평균기온을 붙인다.(__에는 공항에 필터를 사용했을 때 나타나는 첫 번째 행의 번호를 넣는다.)
+#8. 위를 반복하여 기상데이터(W1,W2,W3)를 추가하여 AFSNT_DLY_data2.csv로 저장한다.(AFSNT_DLY_data2.csv는 분석에 사용할 데이터)
+
+#AFSNT_DLY_data2.csv불러오기
+K<-read.csv(file.choose(),header=T)
+#일별항공기상자료.csv가져오기
+data<-read.csv(file.choose(),header=F)
+data2<-subset(data,data$V2>=20180916)
+data3<-subset(data2,data2$V2<=20180930)
+K2<-subset(K,K$V5!=5)
+K3<-subset(K2,K2$V5!=6)
+
+for (i in 1:length(K3[,1])){
+Day<-data3[i,2]%%10000%%100
+ARP<-data3[i,1]
+K3[K3$V3==Day&K3$V5==ARP,13]<-data3[i,3]
+K3[K3$V3==Day&K3$V5==ARP,14]<-data3[i,4]
+K3[K3$V3==Day&K3$V5==ARP,15]<-data3[i,5]
+K3[K3$V3==Day&K3$V5==ARP,16]<-data3[i,6]
+K3[K3$V3==Day&K3$V5==ARP,17]<-data3[i,7]
+K3[K3$V3==Day&K3$V5==ARP,18]<-data3[i,8]
+K3[K3$V3==Day&K3$V5==ARP,19]<-data3[i,9]
+K3[K3$V3==Day&K3$V5==ARP,20]<-data3[i,10]
+K3[K3$V3==Day&K3$V5==ARP,21]<-data3[i,11]
+K3[K3$V3==Day&K3$V5==ARP,22]<-data3[i,12]
+K3[K3$V3==Day&K3$V5==ARP,23]<-data3[i,13]
+K3[K3$V3==Day&K3$V5==ARP,24]<-data3[i,14]
+}
+write.csv(K3,"")
+#AFSNT_DLY_data1.csv로 저장한다.
+#AFSNT_DLY_data1.csv을 연다.
+#R로 write.csv()를 사용하여 자동 생성된 첫 번째 열을 삭제한다.
+#저장한다.(AFSNT_DLY_data1.csv는 분석에 사용할 데이터)
