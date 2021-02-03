@@ -1,0 +1,68 @@
+data<-read.csv(file.choose(),header=T)
+TRAIN<-data[,c(-173:-180)]
+data2<-read.csv(file.choose(),header=T)
+VAL<-data2[,c(-172:-179)]
+
+head(VAL)
+##############합치기
+VAL2<-VAL[,c(1,172,2:171)]
+head(VAL2)
+VAL2<-as.matrix(VAL2)
+TRAIN2<-as.matrix(TRAIN)
+
+T2<-rbind(TRAIN2,VAL2)
+### 시간 데이터 생성
+TS<-as.POSIXct(T2[,1])
+Year<-as.numeric(format(TS, "%Y"))
+Month<-as.numeric(format(TS, "%m"))
+Day<-as.numeric(format(TS, "%d"))
+Hour<-as.numeric(format(TS, "%H"))
+M<-as.numeric(format(TS, "%M"))
+Minute<-Hour*60+M
+
+##범주형 데이터의 결측치는 전부 _NA로 변환####
+T3<-T2
+for (i in c(3,4,12,152,154:158,164)){
+T3[which(T3[,i]==""),i]<-"_na"
+T3[which(is.na(T3[,i])),i]<-"_na"
+}
+
+T2<-T3
+#######NA count#########
+MATRIX<-matrix(0,nrow=nrow(T2),ncol=14)
+count<-0
+for (i in c(9,10,11,13,14,15,16,17,18,19,138,159,161,163)){
+count<-count+1
+for (j in 1:nrow(T2)){
+MATRIX[j,count]<-ifelse(is.na(T2[j,i]),1,0)
+}}
+head(MATRIX)
+colnames(MATRIX)<-c("dt_of_athrztn_na","ttl_grnd_flr_na","ttl_dwn_flr_na","tmprtr_na","prcpttn_na","wnd_spd_na","wnd_drctn_na","hmdt_na","gas_engry_us_na","ele_engry_us_na","lw_na","hm_cnt_na","bldng_ar_prc_na","fr_mn_cnt_na")
+head(MATRIX)
+MATRIX2<-as.data.frame(MATRIX)
+
+
+T3<-T2
+for (i in c(9,10,11,13,14,15,16,17,18,19,159,161,163)){
+T3[which(is.na(T3[,i])),i]<-0
+T3[which(T3[,i]==""),i]<-0
+}
+############# lw na는 0######
+for (i in 138:151){
+T3[which(is.na(T3[,i])),i]<-0
+}
+
+############ 에너지 na 는 0###########
+for (i in 18:137){
+T3[which(is.na(T3[,i])),i]<-0
+}
+
+
+
+T4<-as.data.frame(T3)
+
+
+T5<-cbind(T4,MATRIX2,TSX)
+
+
+write.csv(T5,"D:Final10.csv")
