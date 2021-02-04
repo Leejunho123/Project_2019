@@ -10,3 +10,4 @@
             + K-fold
     + 팀 내 업무 : 전처리 및 주성분, 인자, 대응 분석
     + 데이터 및 코드는 소실
+    + pdf : https://github.com/Leejunho123/Project_2019/blob/main/Mental/Mental_health.pdf
