@@ -22,4 +22,4 @@
         3. 이 평균 값을 이용하여 최종 모델 선정
     + 최종 예측률 : 0.7095    
     + 데이터 및 코드는 소실
-    + pdf : 
+    + pdf : https://github.com/Leejunho123/Project_2019/blob/main/student_grade/%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%A7%88%EC%9D%B4%EB%8B%9D%20PPT%20%EC%B5%9C%EC%A2%85.pdf
