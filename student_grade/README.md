@@ -16,6 +16,7 @@
         9. Ada Boosting
         10. XG Boosting
     + 팀 내 업무 : GLM, Ridge, Lasso, GAM, SVM, XG Boosting, 최종 모델 선정을 위한 전체 for문 작성
+    + 사용 언어 : R
     + 특이점 
         1. 각 모델들의 변동성이 커서 특정 모델을 선정하기에 어려움이 있었음
         2. 따라서 모든 모델을 100번 돌려 AUC의 평균값을 도출
