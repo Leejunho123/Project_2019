@@ -9,6 +9,7 @@
 
   + 정신 건강 설문 조사 데이터를 통한 분석 (Mental)
     + 설문 조사 데이터로 문항별 연관성 분석
+    + pdf : https://github.com/Leejunho123/Project_2019/blob/main/Mental/Mental_health.pdf
 
   + 중등학교 설문 조사를 통한 성적 분석 (student_grade)
     + 성적에 영향을 요인 찾기
