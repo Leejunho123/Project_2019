@@ -13,3 +13,4 @@
 
   + 중등학교 설문 조사를 통한 성적 분석 (student_grade)
     + 성적에 영향을 요인 찾기
+    + pdf : https://github.com/Leejunho123/Project_2019/blob/main/student_grade/%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%A7%88%EC%9D%B4%EB%8B%9D%20PPT%20%EC%B5%9C%EC%A2%85.pdf
