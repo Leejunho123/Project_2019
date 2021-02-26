@@ -2,6 +2,7 @@
 - 2019년까지 프로젝트
   + 2019 빅콘테스트 Analysis 분야 퓨처스리그 (Bigcon)
     + 항공 운항 데이터를 활용한 항공 지연 예측
+    + pdf : https://github.com/Leejunho123/Project_2019/blob/main/Bigcon/Analysis_%ED%93%A8%EC%B2%98%EC%8A%A4%EB%A6%AC%EA%B7%B8_P.O.P_%EA%B2%B0%EA%B3%BC%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf
   
   + COMPAS (김해시) 화재발생 예측모델 개발
     + 김해시 집 별 화재발생 예측모델 개발
